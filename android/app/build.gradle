@@ -1,0 +1,39 @@
+plugins {
+    id "com.android.application"
+}
+
+def webAssetsDir = layout.buildDirectory.dir("generated/suniWebAssets")
+
+tasks.register("generateWebAssets", Copy) {
+    from(rootProject.projectDir.parentFile) {
+        include "index.html"
+        include "site.webmanifest"
+        include "icon.svg"
+        include "icon-192.png"
+        include "icon-512.png"
+    }
+    into(webAssetsDir)
+}
+
+android {
+    namespace "com.sunigames.app"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.sunigames.app"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(webAssetsDir)
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("generateWebAssets")
+}
