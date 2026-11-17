@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b14">
+  <meta name="description" content="Suni Games: a collection of classic, mobile-friendly games.">
+  <title>Suni Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b14;
+      --panel: #111522;
+      --panel-soft: #151a2a;
+      --line: rgba(159, 174, 215, .11);
+      --muted: #858da5;
+      --text: #f2f4fb;
+      --blue: #a9b9cf;
+      --pink: #c9aab5;
+      --green: #6de0bd;
+      --ease: cubic-bezier(.2, .75, .25, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      min-height: 100dvh;
+      margin: 0;
+      padding: max(16px, env(safe-area-inset-top)) 18px max(16px, env(safe-area-inset-bottom));
+      display: grid;
+      place-items: center;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 50% 20%, rgba(102, 117, 143, .09), transparent 49%),
+        radial-gradient(ellipse at 12% 88%, rgba(112, 91, 105, .055), transparent 34%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+    .app { width: min(100%, 430px); opacity: 0; transform: translateY(12px); }
+    .app.ready { animation: app-reveal .65s var(--ease) both; }
+    .opening {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+      overflow: hidden; background:
+        radial-gradient(ellipse at 50% 45%, rgba(102, 117, 143, .12), transparent 43%),
+        radial-gradient(ellipse at 50% 100%, rgba(112, 91, 105, .06), transparent 42%),
+        var(--bg);
+      opacity: 1; visibility: visible; transition: opacity .55s var(--ease);
+    }
+    .opening.leaving { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .55s var(--ease), visibility 0s .55s; }
+    .opening-content { display: grid; justify-items: center; padding: 24px; text-align: center; transform: translateY(-8px); }
+    .opening-mark {
+      width: 86px; height: 86px; display: grid; place-items: center; margin-bottom: 30px;
+      border: 1px solid rgba(174,184,205,.16); border-radius: 27px;
+      background: linear-gradient(145deg, #202535, #171b28);
+      box-shadow: 0 18px 48px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.045);
+      animation: logo-arrive .8s var(--ease) both;
+    }
+    .opening-mark svg { width: 51px; height: 51px; overflow: visible; }
+    .opening-mark .opening-x { fill: none; stroke: var(--blue); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 52; stroke-dashoffset: 52; animation: symbol-draw .55s .2s var(--ease) forwards; }
+    .opening-mark circle { fill: none; stroke: var(--pink); stroke-width: 4; stroke-dasharray: 100; stroke-dashoffset: 100; animation: symbol-draw .65s .38s var(--ease) forwards; }
+    .opening-name { margin: 0; color: var(--text); font-size: clamp(29px, 8vw, 39px); font-weight: 760; letter-spacing: -.055em; animation: title-rise .55s .32s var(--ease) both; }
+    .opening-rule { width: 42px; height: 2px; margin-top: 25px; border-radius: 2px; background: linear-gradient(90deg, var(--blue), var(--pink)); transform-origin: center; animation: rule-arrive .6s .45s var(--ease) both; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(14px, 3.5vh, 30px); }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-icon {
+      width: 37px; height: 37px; display: grid; place-items: center;
+      border: 1px solid rgba(174, 184, 205, .15); border-radius: 12px;
+      color: var(--blue); background: linear-gradient(145deg, #202535, #171b28);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+      font-size: 19px; font-weight: 800; letter-spacing: -5px; padding-right: 4px;
+    }
+    .brand-name { font-size: 14px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    .sound-button {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      color: #aab2c8; background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 14px;
+      cursor: pointer; touch-action: manipulation; transition: background-color .2s, color .2s, transform .18s var(--ease);
+    }
+    .topbar-actions button[hidden] { display: none; }
+    .sound-button:active, .action:active, .mode-button:active { transform: scale(.96); }
+    .sound-button svg { width: 18px; height: 18px; }
+
+    .intro { text-align: center; margin-bottom: clamp(14px, 2.7vh, 24px); }
+    h1 { margin: 8px 0 0; font-size: clamp(29px, 8vw, 36px); line-height: 1.1; letter-spacing: -.055em; font-weight: 760; }
+    h1 span { color: #9da9c5; font-weight: 450; }
+
+    .mode-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 20px;
+      border: 1px solid var(--line); border-radius: 15px; background: rgba(17,21,34,.76);
+    }
+    .mode-button {
+      min-height: 43px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--muted);
+      font-size: 12px; font-weight: 650; cursor: pointer; touch-action: manipulation;
+      transition: color .2s, background-color .2s, border-color .2s, transform .18s var(--ease);
+    }
+    .mode-button[aria-pressed="true"] { color: var(--text); background: #22283a; border-color: rgba(255,255,255,.055); }
+
+    .scoreboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: clamp(12px, 2.4vh, 20px); }
+    .score-card {
+      min-height: 78px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;
+      border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, rgba(20,25,40,.92), rgba(15,18,30,.9));
+      transition: border-color .2s;
+    }
+    .score-label { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .score-value { font-size: 22px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .score-card.x .score-value { color: var(--blue); }
+    .score-card.o .score-value { color: var(--pink); }
+    .score-card.draw .score-value { color: #d7dced; }
+    .score-value.bump { animation: score-bump .42s var(--ease); }
+
+    .game-card {
+      padding: 19px; border: 1px solid rgba(155,170,215,.12); border-radius: 24px;
+      background: linear-gradient(145deg, rgba(20,25,40,.97), rgba(15,18,30,.97));
+      box-shadow: 0 24px 70px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025);
+      transition: opacity .22s, transform .22s var(--ease);
+    }
+    .game-card.switching { opacity: .65; transform: scale(.985); }
+    .status { min-height: 44px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 9px; }
+    .status-mark { width: 24px; height: 24px; display: grid; place-items: center; font-size: 19px; font-weight: 750; }
+    .status-mark.x { color: var(--blue); }
+    .status-mark.o { color: var(--pink); }
+    .status-text { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
+    .status-text.subtle { color: #aab2c8; font-weight: 500; }
+    .dots { display: inline-flex; gap: 3px; margin-left: 1px; }
+    .dots i { width: 4px; height: 4px; border-radius: 50%; background: #b6c1dc; animation: dot 1s infinite ease-in-out; }
+    .dots i:nth-child(2) { animation-delay: .14s; }
+    .dots i:nth-child(3) { animation-delay: .28s; }
+    .thinking[hidden] { display: none; }
+
+    .board-wrap { position: relative; width: 100%; aspect-ratio: 1; }
+    .board {
+      position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+      gap: 9px; transition: opacity .2s, transform .2s var(--ease);
+    }
+    .board.resetting { opacity: .58; transform: scale(.985); }
+    .cell {
+      position: relative; display: grid; place-items: center; min-width: 0; padding: 0;
+      overflow: hidden; color: var(--text); background: linear-gradient(145deg, #1a2031, #151a29);
+      border: 1px solid rgba(172,187,226,.09); border-radius: 17px; cursor: pointer;
+      transition: background-color .18s, border-color .18s, transform .18s var(--ease);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cell:not(:disabled):active { transform: scale(.96); }
+    .cell:disabled { cursor: default; }
+    .cell:focus-visible, button:focus-visible { outline: 2px solid rgba(184,194,211,.78); outline-offset: 3px; }
+    .cell.win { background: linear-gradient(145deg, #222735, #1b1f2c); border-color: rgba(184,194,211,.32); }
+    .mark { position: relative; width: 48%; height: 48%; display: block; backface-visibility: hidden; animation: mark-in .34s var(--ease) both; }
+    .mark.x::before, .mark.x::after {
+      content: ""; position: absolute; left: 50%; top: 50%; width: 10%; height: 106%; border-radius: 9px;
+      background: var(--blue);
+      transform-origin: center; backface-visibility: hidden; animation: draw-x .3s var(--ease) both;
+    }
+    .mark.x::before { --angle: 45deg; transform: translate(-50%,-50%) rotate(45deg) scaleY(0); }
+    .mark.x::after { --angle: -45deg; transform: translate(-50%,-50%) rotate(-45deg) scaleY(0); animation-delay: .055s; }
+    .mark.o { border: max(4px, .1em) solid var(--pink); border-radius: 50%; backface-visibility: hidden; animation: draw-o .34s var(--ease) both; }
+    .winning-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .winning-line line { stroke-width: 1.3%; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: line-draw .55s .12s var(--ease) forwards; }
+    .winning-line.x line { stroke: var(--blue); color: var(--blue); }
+    .winning-line.o line { stroke: var(--pink); color: var(--pink); }
+
+    .game-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 16px; }
+    .action {
+      min-height: 47px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: 1px solid transparent; border-radius: 13px; cursor: pointer;
+      font-size: 12px; font-weight: 700; touch-action: manipulation;
+      transition: transform .18s var(--ease), background-color .18s, border-color .18s;
+    }
+    .action.primary { color: #f4f5f8; background: linear-gradient(135deg, #5c687b, #4d586a); box-shadow: 0 5px 14px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.1); }
+    .action.secondary { padding: 0 15px; color: #aab2c8; border-color: var(--line); background: rgba(255,255,255,.025); }
+    .action svg { width: 15px; height: 15px; }
+    .footnote { margin-top: 20px; text-align: center; color: #858da5; font-size: 11px; letter-spacing: .02em; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    .game-picker h1 { margin: 0 0 22px; text-align: center; }
+    .game-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+    .game-tile {
+      min-height: 132px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+      gap: 7px; padding: 16px; color: var(--text); text-align: left; cursor: pointer; touch-action: manipulation;
+      border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, #171c2a, #111521);
+      transition: transform .18s var(--ease), border-color .2s, background-color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-tile:active { transform: scale(.97); }
+    .game-tile-icon { min-height: 29px; color: var(--blue); font-size: 25px; line-height: 1; font-weight: 750; }
+    .game-tile-icon.numeric-icon { font-size: 19px; letter-spacing: -.08em; }
+    .game-tile-title { font-size: 13px; font-weight: 700; }
+    .game-tile-detail { color: var(--muted); font-size: 10px; }
+    .game-toolbar { display: flex; align-items: center; gap: 12px; margin: 0 0 17px; }
+    .game-toolbar h1 { flex: 1; margin: 0; text-align: right; font-size: 24px; }
+    .back-button {
+      min-height: 42px; display: inline-flex; align-items: center; gap: 3px; padding: 0 10px 0 4px;
+      color: #aab2c8; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025);
+      font-size: 11px; font-weight: 650; cursor: pointer; touch-action: manipulation;
+      transition: transform .18s var(--ease), background-color .18s, color .18s;
+    }
+    .back-button:active { transform: scale(.97); }
+    .back-button svg { width: 18px; height: 18px; }
+    .game-view[hidden], #game-picker[hidden], #game-toolbar[hidden] { display: none !important; }
+    .mini-card {
+      padding: 16px; border: 1px solid rgba(155,170,215,.12); border-radius: 22px;
+      background: linear-gradient(145deg, rgba(20,25,40,.97), rgba(15,18,30,.97));
+      box-shadow: 0 20px 55px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.025);
+    }
+    .mini-status { min-height: 28px; display: grid; place-items: center; margin-bottom: 12px; color: #c4cada; font-size: 13px; font-weight: 650; text-align: center; }
+    .mini-stats { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+    .mini-stats strong { margin-left: 5px; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .compact-action { min-height: 36px; }
+
+    .connect-board {
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; width: 100%; aspect-ratio: 7 / 6;
+      padding: 8px; overflow: hidden; border-radius: 16px; background: #252c3b;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.18);
+    }
+    .connect-column {
+      display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 5px; min-width: 0; padding: 0;
+      border: 0; background: transparent; cursor: pointer; touch-action: manipulation;
+    }
+    .connect-disc { width: 100%; aspect-ratio: 1; align-self: center; border-radius: 50%; background: #111622; box-shadow: inset 0 2px 4px rgba(0,0,0,.2); }
+    .connect-disc.red { background: #bd827f; }
+    .connect-disc.yellow { background: #c5b17d; }
+
+    .memory-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .memory-card {
+      aspect-ratio: 1; display: grid; place-items: center; padding: 0; color: var(--text);
+      border: 1px solid rgba(172,187,226,.09); border-radius: 13px; background: #1a2030;
+      font-size: clamp(20px, 7vw, 29px); cursor: pointer; touch-action: manipulation;
+      transition: transform .2s var(--ease), background-color .2s, border-color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .memory-card:active { transform: scale(.95); }
+    .memory-card.revealed, .memory-card.matched { background: #262d3c; border-color: rgba(184,194,211,.25); }
+    .memory-card.matched { color: #c9aab5; }
+
+    .rps-result { min-height: 56px; display: grid; place-items: center; margin: 4px 0 12px; color: var(--text); font-size: 20px; font-weight: 750; text-align: center; }
+    .choice-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+    .choice-button {
+      min-height: 98px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
+      color: var(--text); border: 1px solid var(--line); border-radius: 15px; background: #191f2e; cursor: pointer; touch-action: manipulation;
+      transition: transform .18s var(--ease), border-color .2s, background-color .2s;
+    }
+    .choice-button:active { transform: scale(.96); }
+    .choice-button span { font-size: 29px; }
+    .choice-button small { color: var(--muted); font-size: 10px; }
+    .rps-score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 17px; }
+    .rps-score div { display: grid; gap: 5px; justify-items: center; padding: 10px 4px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.02); }
+    .rps-score span { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .rps-score strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+    .tile-board {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; width: 100%; aspect-ratio: 1;
+      padding: 8px; border-radius: 16px; background: #303746; touch-action: none; user-select: none;
+    }
+    .tile-2048 { display: grid; place-items: center; border-radius: 10px; background: #424a57; color: #f5f3ed; font-size: clamp(18px, 6vw, 27px); font-weight: 750; font-variant-numeric: tabular-nums; }
+    .tile-2048[data-value="2"] { background: #e7e2d9; color: #373a40; }
+    .tile-2048[data-value="4"] { background: #d7d0c4; color: #373a40; }
+    .tile-2048[data-value="8"] { background: #c5b59c; color: #2f333a; }
+    .tile-2048[data-value="16"] { background: #b8a387; color: #f7f5f0; }
+    .tile-2048[data-value="32"] { background: #aa9076; }
+    .tile-2048[data-value="64"] { background: #997e6b; }
+    .tile-2048[data-value="128"], .tile-2048[data-value="256"], .tile-2048[data-value="512"] { background: #90836d; font-size: clamp(15px, 5vw, 22px); }
+    .tile-2048[data-value="1024"], .tile-2048[data-value="2048"] { background: #756d60; font-size: clamp(13px, 4.5vw, 19px); }
+    .direction-pad, .snake-controls { display: grid; justify-content: center; gap: 6px; margin: 12px auto 0; }
+    .direction-pad { grid-template-columns: repeat(3, 42px); grid-template-areas: ". up ." "left down right"; }
+    .direction-pad button, .snake-controls button {
+      width: 42px; height: 42px; color: #d8dce6; border: 1px solid var(--line); border-radius: 12px;
+      background: #1b2130; font-size: 19px; cursor: pointer; touch-action: manipulation;
+    }
+    .direction-pad button:active, .snake-controls button:active { transform: scale(.94); }
+    .direction-pad [data-2048="up"] { grid-area: up; }
+    .direction-pad [data-2048="left"] { grid-area: left; }
+    .direction-pad [data-2048="down"] { grid-area: down; }
+    .direction-pad [data-2048="right"] { grid-area: right; }
+    .snake-canvas { display: block; width: min(100%, 360px); aspect-ratio: 1; margin: 0 auto; border: 1px solid var(--line); border-radius: 16px; background: #141a26; }
+    .snake-controls { width: max-content; grid-template-columns: repeat(3, 42px); grid-template-areas: ". up ." "left down right"; }
+    .snake-controls [data-snake="up"] { grid-area: up; }
+    .snake-controls [data-snake="left"] { grid-area: left; }
+    .snake-controls [data-snake="down"] { grid-area: down; }
+    .snake-controls [data-snake="right"] { grid-area: right; }
+
+    @media (hover: hover) {
+      .sound-button:hover { color: white; background: rgba(255,255,255,.08); }
+      .cell:not(:disabled):hover { border-color: rgba(174,184,205,.24); background: #1d2230; }
+      .action.primary:hover { background: linear-gradient(135deg, #68758a, #586477); }
+      .action.secondary:hover { color: #e8ebf5; background: rgba(255,255,255,.065); }
+      .game-tile:hover, .choice-button:hover { transform: translateY(-2px); border-color: rgba(174,184,205,.24); }
+      .back-button:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    }
+
+    @media (max-height: 760px) and (orientation: portrait) {
+      body { padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+      .topbar { margin-bottom: 10px; }
+      .intro { margin-bottom: 10px; }
+      .mode-switch { margin-bottom: 12px; }
+      .scoreboard { margin-bottom: 10px; }
+      .score-card { min-height: 64px; }
+      .game-card { padding: 12px; }
+      .status { min-height: 32px; margin-bottom: 8px; }
+      .game-actions { margin-top: 10px; }
+      .footnote { margin-top: 12px; }
+      .board-wrap { width: min(100%, max(255px, calc(100dvh - 405px))); margin-inline: auto; }
+    }
+
+    @media (max-height: 520px) and (orientation: landscape) {
+      body { padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+      .app.in-game {
+        display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+        grid-template-areas: "head head" "intro game" "mode game" "scores game" "credit credit";
+        gap: 4px 14px; align-items: center; width: min(100%, 900px);
+      }
+      .app.in-game > .topbar { grid-area: head; margin: 0; }
+      .game-toolbar { grid-area: intro; margin: 0; }
+      .game-view { grid-area: game; }
+      #view-tic-tac-toe .mode-switch { grid-area: mode; margin: 0; }
+      #view-tic-tac-toe .scoreboard { grid-area: scores; margin: 0; gap: 6px; }
+      .score-card { min-height: 52px; gap: 3px; }
+      .score-value { font-size: 18px; }
+      #view-tic-tac-toe .game-card, .mini-card { padding: 8px; }
+      .status { min-height: 26px; margin-bottom: 6px; }
+      .board-wrap { width: min(100%, calc(100dvh - 175px)); margin-inline: auto; }
+      .connect-board { max-width: min(100%, calc(100dvh - 140px)); margin-inline: auto; }
+      .tile-board, .snake-canvas { max-width: min(100%, calc(100dvh - 145px)); }
+      .board { gap: 6px; }
+      .cell { border-radius: 13px; }
+      .game-actions { margin-top: 6px; }
+      .action { min-height: 40px; }
+      .app.in-game > .footnote { grid-area: credit; margin: 0; }
+    }
+
+    @keyframes app-reveal { from { opacity: 0; transform: translate3d(0, 12px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+    @keyframes logo-arrive { from { opacity: 0; transform: scale(.78) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+    @keyframes symbol-draw { to { stroke-dashoffset: 0; } }
+    @keyframes title-rise { from { opacity: 0; transform: translate3d(0, 9px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+    @keyframes rule-arrive { from { opacity: 0; transform: scaleX(.3); } to { opacity: 1; transform: scaleX(1); } }
+    @keyframes mark-in { from { opacity: 0; transform: scale(.68); } to { opacity: 1; transform: scale(1); } }
+    @keyframes draw-x { to { transform: translate(-50%,-50%) rotate(var(--angle)) scaleY(1); } }
+    @keyframes draw-o { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+    @keyframes line-draw { to { stroke-dashoffset: 0; } }
+    @keyframes dot { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+    @keyframes score-bump { 50% { transform: scale(1.22); } }
+    @media (max-width: 360px) {
+      body { padding-inline: 13px; }
+      .game-card { padding: 14px; }
+      .board { gap: 7px; }
+      .cell { border-radius: 14px; }
+      .scoreboard { gap: 6px; }
+      .score-label { font-size: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <section class="opening" id="opening" role="status" aria-label="Opening Suni Games">
+    <div class="opening-content">
+      <div class="opening-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <path class="opening-x" d="M8 10 34 36M34 10 8 36"></path>
+          <circle cx="45" cy="45" r="13"></circle>
+        </svg>
+      </div>
+      <p class="opening-name">Suni Games</p>
+      <div class="opening-rule" aria-hidden="true"></div>
+    </div>
+  </section>
+  <main class="app" inert>
+    <header class="topbar">
+      <div class="brand" aria-label="Suni Games">
+        <div class="brand-icon" aria-hidden="true">×○</div>
+        <div><div class="brand-name">Suni Games</div></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="sound-button" id="sound-toggle" type="button" aria-label="Turn sound off" title="Turn sound off">
+          <svg id="sound-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+          </svg>
+        </button>
+        <button class="sound-button" id="fullscreen-toggle" type="button" aria-label="Enter full screen" title="Enter full screen" hidden>
+          <svg id="fullscreen-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="game-picker" id="game-picker" aria-labelledby="hub-title">
+      <h1 id="hub-title">Choose a game</h1>
+      <div class="game-grid">
+        <button class="game-tile" type="button" data-game="tic-tac-toe">
+          <span class="game-tile-icon" aria-hidden="true">×○</span>
+          <span class="game-tile-title">Tic-Tac-Toe</span>
+          <span class="game-tile-detail">1–2 players</span>
+        </button>
+        <button class="game-tile" type="button" data-game="connect-four">
+          <span class="game-tile-icon" aria-hidden="true">●</span>
+          <span class="game-tile-title">Four in a Row</span>
+          <span class="game-tile-detail">2 players</span>
+        </button>
+        <button class="game-tile" type="button" data-game="memory">
+          <span class="game-tile-icon" aria-hidden="true">▦</span>
+          <span class="game-tile-title">Memory Match</span>
+          <span class="game-tile-detail">Find all pairs</span>
+        </button>
+        <button class="game-tile" type="button" data-game="rps">
+          <span class="game-tile-icon" aria-hidden="true">✊</span>
+          <span class="game-tile-title">Rock Paper Scissors</span>
+          <span class="game-tile-detail">You vs. computer</span>
+        </button>
+        <button class="game-tile" type="button" data-game="2048">
+          <span class="game-tile-icon numeric-icon" aria-hidden="true">2048</span>
+          <span class="game-tile-title">2048</span>
+          <span class="game-tile-detail">Join the tiles</span>
+        </button>
+        <button class="game-tile" type="button" data-game="snake">
+          <span class="game-tile-icon" aria-hidden="true">↝</span>
+          <span class="game-tile-title">Snake</span>
+          <span class="game-tile-detail">Collect and grow</span>
+        </button>
+      </div>
+    </section>
+
+    <header class="game-toolbar" id="game-toolbar" hidden>
+      <button class="back-button" id="back-to-games" type="button" aria-label="Back to games">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        <span>All games</span>
+      </button>
+      <h1 id="active-game-title">Tic-Tac-Toe</h1>
+    </header>
+
+    <section class="game-view" id="view-tic-tac-toe" hidden>
+      <div class="mode-switch" role="group" aria-label="Choose game mode">
+        <button class="mode-button" type="button" data-mode="computer" aria-pressed="true">vs. Computer</button>
+        <button class="mode-button" type="button" data-mode="player" aria-pressed="false">vs. Player</button>
+      </div>
+
+      <section class="scoreboard" aria-label="Match scores">
+        <div class="score-card x"><div class="score-label">Player X</div><div class="score-value" id="score-x">0</div></div>
+        <div class="score-card draw"><div class="score-label">Draws</div><div class="score-value" id="score-draw">0</div></div>
+        <div class="score-card o"><div class="score-label" id="score-o-label">Computer O</div><div class="score-value" id="score-o">0</div></div>
+      </section>
+
+      <section class="game-card" id="game-card" aria-label="Tic-Tac-Toe game">
+        <div class="status" aria-live="polite" aria-atomic="true">
+          <span class="status-mark x" id="status-mark" aria-hidden="true">×</span>
+          <span class="status-text" id="status-text">Your turn</span>
+          <span class="thinking" id="thinking" hidden>
+            <span class="status-text subtle">Computer is thinking</span>
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          </span>
+        </div>
+        <div class="board-wrap">
+          <div class="board" id="board" role="grid" aria-label="Tic-Tac-Toe board"></div>
+          <svg class="winning-line" id="winning-line" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none" hidden>
+            <line id="win-stroke" x1="0" y1="0" x2="0" y2="0"></line>
+          </svg>
+        </div>
+        <div class="game-actions">
+          <button class="action primary" id="play-again" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5"></path><path d="M4 17v-5h5"></path><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"></path></svg>
+            Play again
+          </button>
+          <button class="action secondary" id="reset-scores" type="button">Reset scores</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="game-view" id="view-connect-four" hidden>
+      <div class="mini-card">
+        <div class="mini-status" id="connect-status" aria-live="polite">Player 1’s turn</div>
+        <div class="connect-board" id="connect-board" aria-label="Four in a Row board"></div>
+        <div class="game-actions"><button class="action primary" id="connect-new" type="button">New game</button></div>
+      </div>
+    </section>
+
+    <section class="game-view" id="view-memory" hidden>
+      <div class="mini-card">
+        <div class="mini-status" id="memory-status" aria-live="polite">Find all 8 pairs.</div>
+        <div class="mini-stats"><span>Moves <strong id="memory-moves">0</strong></span><span>Pairs <strong id="memory-pairs">0 / 8</strong></span></div>
+        <div class="memory-board" id="memory-board" aria-label="Memory Match cards"></div>
+        <div class="game-actions"><button class="action primary" id="memory-new" type="button">New game</button></div>
+      </div>
+    </section>
+
+    <section class="game-view" id="view-rps" hidden>
+      <div class="mini-card">
+        <div class="mini-status" id="rps-status" aria-live="polite">Choose your move.</div>
+        <div class="rps-result" id="rps-result" aria-live="polite">Ready?</div>
+        <div class="choice-row">
+          <button class="choice-button" type="button" data-choice="rock"><span aria-hidden="true">✊</span><small>Rock</small></button>
+          <button class="choice-button" type="button" data-choice="paper"><span aria-hidden="true">✋</span><small>Paper</small></button>
+          <button class="choice-button" type="button" data-choice="scissors"><span aria-hidden="true">✌</span><small>Scissors</small></button>
+        </div>
+        <div class="rps-score" aria-label="Rock Paper Scissors score">
+          <div><span>You</span><strong id="rps-wins">0</strong></div>
+          <div><span>Draws</span><strong id="rps-draws">0</strong></div>
+          <div><span>Computer</span><strong id="rps-losses">0</strong></div>
+        </div>
+        <div class="game-actions"><button class="action secondary" id="rps-reset" type="button">Reset score</button></div>
+      </div>
+    </section>
+
+    <section class="game-view" id="view-2048" hidden>
+      <div class="mini-card">
+        <div class="mini-status" id="2048-status" aria-live="polite">Use the arrows or swipe to move tiles.</div>
+        <div class="mini-stats"><span>Score <strong id="2048-score">0</strong></span><button class="action secondary compact-action" id="2048-new" type="button">New game</button></div>
+        <div class="tile-board" id="2048-board" aria-label="2048 tile board"></div>
+        <div class="direction-pad" aria-label="Move tiles">
+          <button type="button" data-2048="up" aria-label="Move up">↑</button>
+          <button type="button" data-2048="left" aria-label="Move left">←</button>
+          <button type="button" data-2048="down" aria-label="Move down">↓</button>
+          <button type="button" data-2048="right" aria-label="Move right">→</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="game-view" id="view-snake" hidden>
+      <div class="mini-card">
+        <div class="mini-status" id="snake-status" aria-live="polite">Use the arrows to steer.</div>
+        <div class="mini-stats"><span>Score <strong id="snake-score">0</strong></span><button class="action secondary compact-action" id="snake-pause" type="button">Pause</button></div>
+        <canvas class="snake-canvas" id="snake-canvas" aria-label="Snake game board"></canvas>
+        <div class="snake-controls" aria-label="Snake controls">
+          <button type="button" data-snake="up" aria-label="Steer up">↑</button>
+          <button type="button" data-snake="left" aria-label="Steer left">←</button>
+          <button type="button" data-snake="down" aria-label="Steer down">↓</button>
+          <button type="button" data-snake="right" aria-label="Steer right">→</button>
+        </div>
+        <div class="game-actions"><button class="action primary" id="snake-new" type="button">New game</button></div>
+      </div>
+    </section>
+    <div class="footnote">Built by Vaibhav</div>
+  </main>
+  <div class="sr-only" id="announcer" aria-live="assertive" aria-atomic="true"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const WINNING_COMBOS = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+      const lineCenters = [
+        [16.67, 16.67], [50, 16.67], [83.33, 16.67],
+        [16.67, 50], [50, 50], [83.33, 50],
+        [16.67, 83.33], [50, 83.33], [83.33, 83.33]
+      ];
+      const boardElement = document.getElementById("board");
+      const statusMark = document.getElementById("status-mark");
+      const statusText = document.getElementById("status-text");
+      const thinking = document.getElementById("thinking");
+      const scoreElements = {
+        X: document.getElementById("score-x"),
+        O: document.getElementById("score-o"),
+        draw: document.getElementById("score-draw")
+      };
+      const winLine = document.getElementById("winning-line");
+      const winStroke = document.getElementById("win-stroke");
+      const soundButton = document.getElementById("sound-toggle");
+      const soundIcon = document.getElementById("sound-icon");
+      const fullscreenButton = document.getElementById("fullscreen-toggle");
+      const fullscreenIcon = document.getElementById("fullscreen-icon");
+      const app = document.querySelector(".app");
+      const gamePicker = document.getElementById("game-picker");
+      const gameToolbar = document.getElementById("game-toolbar");
+      const activeGameTitle = document.getElementById("active-game-title");
+      const gameViews = Array.from(document.querySelectorAll(".game-view"));
+      const cells = [];
+      let activeGame = null;
+      let connectGrid = Array.from({ length: 6 }, () => Array(7).fill(null));
+      let connectTurn = "red";
+      let connectEnded = false;
+      const connectColumns = [];
+      let memoryCards = [];
+      let memoryOpen = [];
+      let memoryMatched = new Set();
+      let memoryMoves = 0;
+      let memoryLocked = false;
+      let memoryTimer = null;
+      let memoryToken = 0;
+      const memoryButtons = [];
+      const rpsScore = { wins: 0, draws: 0, losses: 0 };
+      let board2048 = Array.from({ length: 4 }, () => Array(4).fill(0));
+      let score2048 = 0;
+      let over2048 = false;
+      let won2048 = false;
+      let swipeStart = null;
+      const snakeCanvas = document.getElementById("snake-canvas");
+      const snakeContext = snakeCanvas.getContext("2d");
+      const snakeSize = 18;
+      let snakeBody = [];
+      let snakeDirection = "right";
+      let snakeNextDirection = "right";
+      let snakeFood = { x: 12, y: 9 };
+      let snakeScore = 0;
+      let snakeTimer = null;
+      let snakeRunning = false;
+      let snakeOver = false;
+
+      let state = {
+        board: Array(9).fill(null),
+        turn: "X",
+        mode: "computer",
+        scores: { X: 0, O: 0, draw: 0 },
+        ended: false,
+        thinking: false,
+        muted: false,
+        timer: null,
+        moveToken: 0,
+        audio: null
+      };
+
+      for (let index = 0; index < 9; index++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "cell";
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-label", `Empty cell ${index + 1}`);
+        cell.addEventListener("click", () => makeMove(index));
+        boardElement.appendChild(cell);
+        cells.push(cell);
+      }
+
+      for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+        const column = document.createElement("button");
+        column.type = "button";
+        column.className = "connect-column";
+        column.setAttribute("aria-label", `Drop in column ${columnIndex + 1}`);
+        column.addEventListener("click", () => dropConnectPiece(columnIndex));
+        for (let rowIndex = 0; rowIndex < 6; rowIndex++) {
+          const disc = document.createElement("span");
+          disc.className = "connect-disc";
+          disc.setAttribute("aria-hidden", "true");
+          column.appendChild(disc);
+        }
+        document.getElementById("connect-board").appendChild(column);
+        connectColumns.push(column);
+      }
+
+      const memoryBoardElement = document.getElementById("memory-board");
+      for (let cardIndex = 0; cardIndex < 16; cardIndex++) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "memory-card";
+        card.addEventListener("click", () => flipMemoryCard(cardIndex));
+        memoryBoardElement.appendChild(card);
+        memoryButtons.push(card);
+      }
+
+      function haptic(pattern) {
+        if ("vibrate" in navigator) navigator.vibrate(pattern);
+      }
+
+      function playTone(frequency, duration, type, volume, delay) {
+        if (state.muted) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        if (!state.audio) state.audio = new AudioContext();
+        if (state.audio.state === "suspended") state.audio.resume();
+        const oscillator = state.audio.createOscillator();
+        const gain = state.audio.createGain();
+        const start = state.audio.currentTime + (delay || 0);
+        oscillator.type = type || "sine";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume || .035, start + .018);
+        gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+        oscillator.connect(gain);
+        gain.connect(state.audio.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration + .02);
+      }
+
+      function playMoveSound(mark) {
+        playTone(mark === "X" ? 420 : 560, .12, "sine", .025);
+      }
+
+      function playWinSound() {
+        [523.25, 659.25, 783.99].forEach((frequency, index) => playTone(frequency, .36, "sine", .045, index * .11));
+      }
+
+      function renderConnectBoard() {
+        connectColumns.forEach((column, columnIndex) => {
+          column.disabled = connectEnded || Boolean(connectGrid[0][columnIndex]);
+          Array.from(column.children).forEach((disc, rowIndex) => {
+            disc.classList.toggle("red", connectGrid[rowIndex][columnIndex] === "red");
+            disc.classList.toggle("yellow", connectGrid[rowIndex][columnIndex] === "yellow");
+          });
+        });
+      }
+
+      function connectHasWon(row, column, color) {
+        return [[0, 1], [1, 0], [1, 1], [1, -1]].some(([dr, dc]) => {
+          let total = 1;
+          for (const sign of [-1, 1]) {
+            let r = row + dr * sign;
+            let c = column + dc * sign;
+            while (r >= 0 && r < 6 && c >= 0 && c < 7 && connectGrid[r][c] === color) {
+              total++;
+              r += dr * sign;
+              c += dc * sign;
+            }
+          }
+          return total >= 4;
+        });
+      }
+
+      function dropConnectPiece(column) {
+        if (connectEnded) return;
+        let row = 5;
+        while (row >= 0 && connectGrid[row][column]) row--;
+        if (row < 0) return;
+        const color = connectTurn;
+        connectGrid[row][column] = color;
+        haptic(10);
+        playTone(color === "red" ? 420 : 520, .1, "sine", .025);
+        if (connectHasWon(row, column, color)) {
+          connectEnded = true;
+          document.getElementById("connect-status").textContent = `Player ${color === "red" ? "1" : "2"} wins!`;
+          document.getElementById("announcer").textContent = `Player ${color === "red" ? "1" : "2"} wins Four in a Row.`;
+        } else if (connectGrid[0].every(Boolean)) {
+          connectEnded = true;
+          document.getElementById("connect-status").textContent = "It’s a draw.";
+          document.getElementById("announcer").textContent = "Four in a Row ended in a draw.";
+        } else {
+          connectTurn = color === "red" ? "yellow" : "red";
+          document.getElementById("connect-status").textContent = `Player ${connectTurn === "red" ? "1" : "2"}’s turn`;
+        }
+        renderConnectBoard();
+      }
+
+      function newConnectGame() {
+        connectGrid = Array.from({ length: 6 }, () => Array(7).fill(null));
+        connectTurn = "red";
+        connectEnded = false;
+        document.getElementById("connect-status").textContent = "Player 1’s turn";
+        renderConnectBoard();
+      }
+
+      function renderMemory() {
+        memoryCards.forEach((symbol, index) => {
+          const button = memoryButtons[index];
+          const matched = memoryMatched.has(index);
+          const revealed = matched || memoryOpen.includes(index);
+          button.classList.toggle("revealed", revealed);
+          button.classList.toggle("matched", matched);
+          button.textContent = revealed ? symbol : "•";
+          button.disabled = matched || memoryLocked;
+          button.setAttribute("aria-label", matched ? `Matched ${symbol}` : revealed ? `Card ${index + 1}, ${symbol}` : `Hidden card ${index + 1}`);
+        });
+        document.getElementById("memory-moves").textContent = String(memoryMoves);
+        document.getElementById("memory-pairs").textContent = `${memoryMatched.size / 2} / 8`;
+      }
+
+      function flipMemoryCard(index) {
+        if (memoryLocked || memoryMatched.has(index) || memoryOpen.includes(index)) return;
+        memoryOpen.push(index);
+        haptic(8);
+        if (memoryOpen.length === 2) {
+          memoryMoves++;
+          const [first, second] = memoryOpen;
+          if (memoryCards[first] === memoryCards[second]) {
+            memoryMatched.add(first);
+            memoryMatched.add(second);
+            memoryOpen = [];
+            playTone(620, .12, "sine", .025);
+            if (memoryMatched.size === memoryCards.length) {
+              document.getElementById("memory-status").textContent = `Complete in ${memoryMoves} moves.`;
+              playWinSound();
+            }
+          } else {
+            memoryLocked = true;
+            memoryToken++;
+            const token = memoryToken;
+            memoryTimer = window.setTimeout(() => {
+              if (token !== memoryToken) return;
+              memoryTimer = null;
+              memoryLocked = false;
+              memoryOpen = [];
+              renderMemory();
+            }, 720);
+          }
+        }
+        renderMemory();
+      }
+
+      function newMemoryGame() {
+        if (memoryTimer !== null) window.clearTimeout(memoryTimer);
+        memoryTimer = null;
+        memoryToken++;
+        const symbols = ["🌙", "🍀", "🎲", "🍓", "🪐", "🐙", "🎈", "🧩"];
+        memoryCards = [...symbols, ...symbols];
+        for (let i = memoryCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [memoryCards[i], memoryCards[j]] = [memoryCards[j], memoryCards[i]];
+        }
+        memoryOpen = [];
+        memoryMatched = new Set();
+        memoryMoves = 0;
+        memoryLocked = false;
+        document.getElementById("memory-status").textContent = "Find all 8 pairs.";
+        renderMemory();
+      }
+
+      function playRps(choice) {
+        const options = ["rock", "paper", "scissors"];
+        const computer = options[Math.floor(Math.random() * options.length)];
+        const beats = { rock: "scissors", paper: "rock", scissors: "paper" };
+        const labels = { rock: "Rock", paper: "Paper", scissors: "Scissors" };
+        let result;
+        if (choice === computer) {
+          rpsScore.draws++;
+          result = "Draw";
+        } else if (beats[choice] === computer) {
+          rpsScore.wins++;
+          result = "You win";
+        } else {
+          rpsScore.losses++;
+          result = "Computer wins";
+        }
+        document.getElementById("rps-result").textContent = result;
+        document.getElementById("rps-status").textContent = `You: ${labels[choice]} · Computer: ${labels[computer]}`;
+        document.getElementById("rps-wins").textContent = String(rpsScore.wins);
+        document.getElementById("rps-draws").textContent = String(rpsScore.draws);
+        document.getElementById("rps-losses").textContent = String(rpsScore.losses);
+        if (result === "You win") {
+          playWinSound();
+          haptic([15, 35, 18]);
+        } else {
+          playTone(result === "Draw" ? 440 : 300, .12, "sine", .025);
+          haptic(10);
+        }
+      }
+
+      function render2048() {
+        const element = document.getElementById("2048-board");
+        element.replaceChildren();
+        board2048.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
+          const tile = document.createElement("div");
+          tile.className = "tile-2048";
+          tile.setAttribute("role", "gridcell");
+          tile.setAttribute("aria-label", value ? String(value) : "Empty");
+          if (value) {
+            tile.dataset.value = String(value);
+            tile.textContent = String(value);
+          }
+          element.appendChild(tile);
+        }));
+        document.getElementById("2048-score").textContent = String(score2048);
+      }
+
+      function spawn2048() {
+        const empty = [];
+        board2048.forEach((row, r) => row.forEach((value, c) => {
+          if (!value) empty.push([r, c]);
+        }));
+        if (!empty.length) return;
+        const [row, column] = empty[Math.floor(Math.random() * empty.length)];
+        board2048[row][column] = Math.random() < .9 ? 2 : 4;
+      }
+
+      function canMove2048() {
+        for (let row = 0; row < 4; row++) {
+          for (let column = 0; column < 4; column++) {
+            if (!board2048[row][column]) return true;
+            if (column < 3 && board2048[row][column] === board2048[row][column + 1]) return true;
+            if (row < 3 && board2048[row][column] === board2048[row + 1][column]) return true;
+          }
+        }
+        return false;
+      }
+
+      function reset2048() {
+        board2048 = Array.from({ length: 4 }, () => Array(4).fill(0));
+        score2048 = 0;
+        over2048 = false;
+        won2048 = false;
+        document.getElementById("2048-status").textContent = "Use the arrows or swipe to move tiles.";
+        spawn2048();
+        spawn2048();
+        render2048();
+      }
+
+      function move2048(direction) {
+        if (over2048) return;
+        const nextBoard = Array.from({ length: 4 }, () => Array(4).fill(0));
+        let gained = 0;
+        for (let line = 0; line < 4; line++) {
+          const coordinates = [];
+          for (let offset = 0; offset < 4; offset++) {
+            if (direction === "left") coordinates.push([line, offset]);
+            if (direction === "right") coordinates.push([line, 3 - offset]);
+            if (direction === "up") coordinates.push([offset, line]);
+            if (direction === "down") coordinates.push([3 - offset, line]);
+          }
+          const values = coordinates.map(([row, column]) => board2048[row][column]).filter(Boolean);
+          const merged = [];
+          for (let index = 0; index < values.length; index++) {
+            if (values[index] === values[index + 1]) {
+              const value = values[index] * 2;
+              merged.push(value);
+              gained += value;
+              index++;
+            } else {
+              merged.push(values[index]);
+            }
+          }
+          while (merged.length < 4) merged.push(0);
+          coordinates.forEach(([row, column], offset) => { nextBoard[row][column] = merged[offset]; });
+        }
+        if (nextBoard.every((row, r) => row.every((value, c) => value === board2048[r][c]))) return;
+        board2048 = nextBoard;
+        score2048 += gained;
+        spawn2048();
+        render2048();
+        if (!won2048 && board2048.some(row => row.includes(2048))) {
+          won2048 = true;
+          document.getElementById("2048-status").textContent = "2048 reached. Keep going!";
+          playWinSound();
+        } else if (!canMove2048()) {
+          over2048 = true;
+          document.getElementById("2048-status").textContent = "No moves left. Start a new game.";
+        } else if (!won2048) {
+          document.getElementById("2048-status").textContent = "Use the arrows or swipe to move tiles.";
+        }
+        playTone(440 + Math.min(gained, 1024) / 8, .07, "sine", .018);
+        haptic(8);
+      }
+
+      function newSnakeGame() {
+        if (snakeTimer !== null) window.clearInterval(snakeTimer);
+        snakeBody = [{ x: 5, y: 9 }, { x: 4, y: 9 }, { x: 3, y: 9 }];
+        snakeDirection = "right";
+        snakeNextDirection = "right";
+        snakeScore = 0;
+        snakeOver = false;
+        snakeRunning = true;
+        snakeFood = { x: 12, y: 9 };
+        document.getElementById("snake-score").textContent = "0";
+        document.getElementById("snake-status").textContent = "Use the arrows to steer.";
+        document.getElementById("snake-pause").textContent = "Pause";
+        drawSnake();
+        snakeTimer = window.setInterval(tickSnake, 135);
+      }
+
+      function drawSnake() {
+        const width = snakeCanvas.clientWidth;
+        if (!width || !snakeContext) return;
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const pixelWidth = Math.round(width * ratio);
+        if (snakeCanvas.width !== pixelWidth || snakeCanvas.height !== pixelWidth) {
+          snakeCanvas.width = pixelWidth;
+          snakeCanvas.height = pixelWidth;
+        }
+        snakeContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+        snakeContext.clearRect(0, 0, width, width);
+        const cell = width / snakeSize;
+        snakeContext.fillStyle = "#141a26";
+        snakeContext.fillRect(0, 0, width, width);
+        snakeContext.fillStyle = "#c9aab5";
+        snakeContext.fillRect(snakeFood.x * cell + cell * .2, snakeFood.y * cell + cell * .2, cell * .6, cell * .6);
+        snakeBody.forEach((part, index) => {
+          snakeContext.fillStyle = index === 0 ? "#d5dbe5" : "#a9b9cf";
+          snakeContext.fillRect(part.x * cell + 1, part.y * cell + 1, cell - 2, cell - 2);
+        });
+      }
+
+      function setSnakeDirection(direction) {
+        if (snakeOver || !snakeRunning) return;
+        const opposite = { up: "down", down: "up", left: "right", right: "left" };
+        if (direction !== opposite[snakeDirection]) snakeNextDirection = direction;
+      }
+
+      function tickSnake() {
+        if (!snakeRunning || snakeOver) return;
+        snakeDirection = snakeNextDirection;
+        const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+        const [dx, dy] = vectors[snakeDirection];
+        const head = { x: snakeBody[0].x + dx, y: snakeBody[0].y + dy };
+        const eating = head.x === snakeFood.x && head.y === snakeFood.y;
+        const collisionBody = eating ? snakeBody : snakeBody.slice(0, -1);
+        if (head.x < 0 || head.x >= snakeSize || head.y < 0 || head.y >= snakeSize ||
+            collisionBody.some(part => part.x === head.x && part.y === head.y)) {
+          snakeOver = true;
+          snakeRunning = false;
+          window.clearInterval(snakeTimer);
+          snakeTimer = null;
+          document.getElementById("snake-status").textContent = `Game over. Score: ${snakeScore}.`;
+          document.getElementById("snake-pause").textContent = "Paused";
+          haptic([20, 45, 20]);
+          drawSnake();
+          return;
+        }
+        snakeBody.unshift(head);
+        if (eating) {
+          snakeScore++;
+          document.getElementById("snake-score").textContent = String(snakeScore);
+          do {
+            snakeFood = { x: Math.floor(Math.random() * snakeSize), y: Math.floor(Math.random() * snakeSize) };
+          } while (snakeBody.some(part => part.x === snakeFood.x && part.y === snakeFood.y));
+          playTone(540, .07, "sine", .02);
+          haptic(8);
+        } else {
+          snakeBody.pop();
+        }
+        drawSnake();
+      }
+
+      function pauseSnake() {
+        if (snakeOver) return;
+        if (snakeRunning) {
+          snakeRunning = false;
+          window.clearInterval(snakeTimer);
+          snakeTimer = null;
+          document.getElementById("snake-status").textContent = "Paused.";
+          document.getElementById("snake-pause").textContent = "Resume";
+        } else {
+          snakeRunning = true;
+          snakeTimer = window.setInterval(tickSnake, 135);
+          document.getElementById("snake-status").textContent = "Use the arrows to steer.";
+          document.getElementById("snake-pause").textContent = "Pause";
+        }
+      }
+
+      function stopSnake() {
+        if (snakeTimer !== null) window.clearInterval(snakeTimer);
+        snakeTimer = null;
+        snakeRunning = false;
+      }
+
+      function getResult(board) {
+        for (const combo of WINNING_COMBOS) {
+          if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]]) {
+            return { winner: board[combo[0]], combo };
+          }
+        }
+        return board.every(Boolean) ? { winner: "draw", combo: null } : null;
+      }
+
+      function render() {
+        cells.forEach((cell, index) => {
+          const mark = state.board[index];
+          cell.replaceChildren();
+          cell.classList.toggle("win", Boolean(mark && state.winningCombo && state.winningCombo.includes(index)));
+          cell.classList.toggle("x", Boolean(mark === "X" && state.winningCombo && state.winningCombo.includes(index)));
+          cell.classList.toggle("o", Boolean(mark === "O" && state.winningCombo && state.winningCombo.includes(index)));
+          cell.disabled = state.ended || state.thinking || Boolean(mark);
+          cell.setAttribute("aria-label", mark ? `${mark === "X" ? "X" : "O"} in cell ${index + 1}` : `Empty cell ${index + 1}`);
+          if (mark) {
+            const symbol = document.createElement("span");
+            symbol.className = `mark ${mark.toLowerCase()}`;
+            symbol.setAttribute("aria-hidden", "true");
+            cell.appendChild(symbol);
+          }
+        });
+
+        thinking.hidden = !state.thinking;
+        statusMark.hidden = state.thinking;
+        statusText.hidden = state.thinking;
+        if (!state.thinking) {
+          statusMark.textContent = state.ended && state.winner === "draw" ? "↔" : state.turn === "X" ? "×" : "○";
+          statusMark.className = `status-mark ${state.ended && state.winner === "draw" ? "" : state.turn.toLowerCase()}`;
+          statusText.classList.toggle("subtle", Boolean(state.ended));
+          if (state.ended) {
+            statusText.textContent = state.winner === "draw" ? "It’s a draw" :
+              (state.mode === "computer" && state.winner === "O" ? "Computer wins" : `Player ${state.winner} wins`);
+          } else {
+            statusText.textContent = state.mode === "computer" && state.turn === "X" ? "Your turn" :
+              state.mode === "computer" ? "Computer’s turn" : `Player ${state.turn}’s turn`;
+          }
+        }
+        document.querySelectorAll(".mode-button").forEach(button => {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === state.mode));
+        });
+        document.getElementById("score-o-label").textContent = state.mode === "computer" ? "Computer O" : "Player O";
+        winLine.hidden = !state.winningCombo;
+      }
+
+      function updateScore(key) {
+        state.scores[key]++;
+        const element = scoreElements[key];
+        element.textContent = String(state.scores[key]);
+        element.classList.remove("bump");
+        void element.offsetWidth;
+        element.classList.add("bump");
+      }
+
+      function finishRound(result) {
+        state.ended = true;
+        state.winner = result.winner;
+        state.winningCombo = result.combo;
+        updateScore(result.winner);
+        if (result.combo) {
+          const [first, , last] = result.combo;
+          const [x1, y1] = lineCenters[first];
+          const [x2, y2] = lineCenters[last];
+          winStroke.setAttribute("x1", x1);
+          winStroke.setAttribute("y1", y1);
+          winStroke.setAttribute("x2", x2);
+          winStroke.setAttribute("y2", y2);
+          winLine.classList.toggle("x", result.winner === "X");
+          winLine.classList.toggle("o", result.winner === "O");
+          haptic([20, 40, 35]);
+          playWinSound();
+          document.getElementById("announcer").textContent =
+            result.winner === "O" && state.mode === "computer" ? "Computer wins." : `Player ${result.winner} wins.`;
+        } else {
+          haptic(18);
+          playTone(330, .18, "sine", .025);
+          document.getElementById("announcer").textContent = "It’s a draw.";
+        }
+      }
+
+      function makeMove(index) {
+        if (state.ended || state.thinking || state.board[index]) return;
+        if (state.mode === "computer" && state.turn === "O") return;
+        state.board[index] = state.turn;
+        playMoveSound(state.turn);
+        haptic(10);
+        const result = getResult(state.board);
+        if (result) {
+          finishRound(result);
+          render();
+          return;
+        }
+        state.turn = state.turn === "X" ? "O" : "X";
+        if (state.mode === "computer" && state.turn === "O") scheduleComputerMove();
+        render();
+      }
+
+      function minimax(board, maximizing, depth) {
+        const result = getResult(board);
+        if (result) {
+          if (result.winner === "O") return 10 - depth;
+          if (result.winner === "X") return depth - 10;
+          return 0;
+        }
+        if (maximizing) {
+          let best = -Infinity;
+          for (let i = 0; i < board.length; i++) {
+            if (!board[i]) {
+              board[i] = "O";
+              best = Math.max(best, minimax(board, false, depth + 1));
+              board[i] = null;
+            }
+          }
+          return best;
+        }
+        let best = Infinity;
+        for (let i = 0; i < board.length; i++) {
+          if (!board[i]) {
+            board[i] = "X";
+            best = Math.min(best, minimax(board, true, depth + 1));
+            board[i] = null;
+          }
+        }
+        return best;
+      }
+
+      function chooseComputerMove() {
+        let bestScore = -Infinity;
+        let bestMoves = [];
+        for (let i = 0; i < state.board.length; i++) {
+          if (!state.board[i]) {
+            state.board[i] = "O";
+            const score = minimax(state.board, false, 0);
+            state.board[i] = null;
+            if (score > bestScore) {
+              bestScore = score;
+              bestMoves = [i];
+            } else if (score === bestScore) {
+              bestMoves.push(i);
+            }
+          }
+        }
+        return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+      }
+
+      function scheduleComputerMove() {
+        state.thinking = true;
+        state.moveToken++;
+        const token = state.moveToken;
+        render();
+        state.timer = window.setTimeout(() => {
+          if (token !== state.moveToken || state.mode !== "computer" || state.ended) return;
+          state.timer = null;
+          state.thinking = false;
+          const move = chooseComputerMove();
+          if (move === undefined) return;
+          state.board[move] = "O";
+          playMoveSound("O");
+          const result = getResult(state.board);
+          if (result) finishRound(result);
+          else state.turn = "X";
+          render();
+        }, 1450);
+      }
+
+      function cancelComputerMove() {
+        state.moveToken++;
+        if (state.timer !== null) {
+          window.clearTimeout(state.timer);
+          state.timer = null;
+        }
+        state.thinking = false;
+      }
+
+      function resetRound() {
+        cancelComputerMove();
+        boardElement.classList.add("resetting");
+        state.board = Array(9).fill(null);
+        state.turn = "X";
+        state.ended = false;
+        state.winner = null;
+        state.winningCombo = null;
+        winLine.hidden = true;
+        render();
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => boardElement.classList.remove("resetting")));
+      }
+
+      const gameTitles = {
+        "tic-tac-toe": "Tic-Tac-Toe",
+        "connect-four": "Four in a Row",
+        memory: "Memory Match",
+        rps: "Rock Paper Scissors",
+        "2048": "2048",
+        snake: "Snake"
+      };
+
+      function openGame(game) {
+        if (!gameTitles[game]) return;
+        if (activeGame === "tic-tac-toe") {
+          cancelComputerMove();
+          render();
+        }
+        if (activeGame === "snake") stopSnake();
+        if (memoryTimer !== null) {
+          window.clearTimeout(memoryTimer);
+          memoryTimer = null;
+          memoryToken++;
+          memoryLocked = false;
+          memoryOpen = [];
+          renderMemory();
+        }
+        activeGame = game;
+        app.classList.add("in-game");
+        gamePicker.hidden = true;
+        gameToolbar.hidden = false;
+        activeGameTitle.textContent = gameTitles[game];
+        gameViews.forEach(view => { view.hidden = view.id !== `view-${game}`; });
+        if (game === "tic-tac-toe") {
+          render();
+          if (state.mode === "computer" && state.turn === "O" && !state.ended) scheduleComputerMove();
+        } else if (game === "connect-four") {
+          newConnectGame();
+        } else if (game === "memory") {
+          newMemoryGame();
+        } else if (game === "rps") {
+          document.getElementById("rps-status").textContent = "Choose your move.";
+          document.getElementById("rps-result").textContent = "Ready?";
+        } else if (game === "2048") {
+          reset2048();
+        } else if (game === "snake") {
+          newSnakeGame();
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        haptic(8);
+      }
+
+      function returnToGames() {
+        if (activeGame === "tic-tac-toe") {
+          cancelComputerMove();
+          render();
+        }
+        if (activeGame === "snake") stopSnake();
+        if (memoryTimer !== null) {
+          window.clearTimeout(memoryTimer);
+          memoryTimer = null;
+          memoryToken++;
+          memoryLocked = false;
+          memoryOpen = [];
+          renderMemory();
+        }
+        activeGame = null;
+        app.classList.remove("in-game");
+        gameViews.forEach(view => { view.hidden = true; });
+        gameToolbar.hidden = true;
+        gamePicker.hidden = false;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      document.querySelectorAll(".game-tile").forEach(tile => {
+        tile.addEventListener("click", () => openGame(tile.dataset.game));
+      });
+      document.getElementById("back-to-games").addEventListener("click", returnToGames);
+      document.getElementById("connect-new").addEventListener("click", newConnectGame);
+      document.getElementById("memory-new").addEventListener("click", newMemoryGame);
+      document.getElementById("rps-reset").addEventListener("click", () => {
+        rpsScore.wins = 0;
+        rpsScore.draws = 0;
+        rpsScore.losses = 0;
+        document.getElementById("rps-wins").textContent = "0";
+        document.getElementById("rps-draws").textContent = "0";
+        document.getElementById("rps-losses").textContent = "0";
+        document.getElementById("rps-status").textContent = "Choose your move.";
+        document.getElementById("rps-result").textContent = "Ready?";
+      });
+      document.querySelectorAll(".choice-button").forEach(button => {
+        button.addEventListener("click", () => playRps(button.dataset.choice));
+      });
+      document.getElementById("2048-new").addEventListener("click", reset2048);
+      document.querySelectorAll("[data-2048]").forEach(button => {
+        button.addEventListener("click", () => move2048(button.dataset["2048"]));
+      });
+      document.getElementById("2048-board").addEventListener("pointerdown", event => {
+        swipeStart = { x: event.clientX, y: event.clientY };
+      });
+      document.getElementById("2048-board").addEventListener("pointerup", event => {
+        if (!swipeStart) return;
+        const dx = event.clientX - swipeStart.x;
+        const dy = event.clientY - swipeStart.y;
+        swipeStart = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+        move2048(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+      });
+      document.getElementById("2048-board").addEventListener("pointercancel", () => { swipeStart = null; });
+      document.getElementById("snake-new").addEventListener("click", newSnakeGame);
+      document.getElementById("snake-pause").addEventListener("click", pauseSnake);
+      document.querySelectorAll("[data-snake]").forEach(button => {
+        button.addEventListener("click", () => setSnakeDirection(button.dataset.snake));
+      });
+      window.addEventListener("keydown", event => {
+        if (activeGame === "2048") {
+          const direction = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[event.key];
+          if (direction) {
+            event.preventDefault();
+            move2048(direction);
+          }
+        } else if (activeGame === "snake") {
+          const direction = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right" }[event.key];
+          if (direction) {
+            event.preventDefault();
+            setSnakeDirection(direction);
+          }
+        }
+      });
+      window.addEventListener("resize", () => {
+        if (activeGame === "snake") drawSnake();
+      });
+
+      document.querySelectorAll(".mode-button").forEach(button => {
+        button.addEventListener("click", () => {
+          if (button.dataset.mode === state.mode) return;
+          const card = document.getElementById("game-card");
+          card.classList.add("switching");
+          state.mode = button.dataset.mode;
+          resetRound();
+          window.setTimeout(() => card.classList.remove("switching"), 180);
+          haptic(8);
+        });
+      });
+
+      document.getElementById("play-again").addEventListener("click", () => {
+        resetRound();
+        haptic(8);
+      });
+
+      document.getElementById("reset-scores").addEventListener("click", () => {
+        state.scores = { X: 0, O: 0, draw: 0 };
+        Object.entries(scoreElements).forEach(([key, element]) => {
+          element.textContent = "0";
+          element.classList.remove("bump");
+        });
+        resetRound();
+        document.getElementById("announcer").textContent = "Scores reset.";
+        haptic(8);
+      });
+
+      soundButton.addEventListener("click", () => {
+        state.muted = !state.muted;
+        soundButton.setAttribute("aria-label", state.muted ? "Turn sound on" : "Turn sound off");
+        soundButton.title = state.muted ? "Turn sound on" : "Turn sound off";
+        soundIcon.innerHTML = state.muted
+          ? '<path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="m16 9 5 6"></path><path d="m21 9-5 6"></path>'
+          : '<path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path>';
+        if (!state.muted) playTone(660, .09, "sine", .025);
+        haptic(8);
+      });
+
+      function syncFullscreenButton() {
+        const supported = document.fullscreenEnabled && typeof document.documentElement.requestFullscreen === "function";
+        fullscreenButton.hidden = !supported;
+        if (!supported) return;
+        const active = Boolean(document.fullscreenElement);
+        const label = active ? "Exit full screen" : "Enter full screen";
+        fullscreenButton.setAttribute("aria-label", label);
+        fullscreenButton.title = label;
+        fullscreenIcon.innerHTML = active
+          ? '<path d="M8 3v5H3M16 3v5h5M3 16h5v5M21 16h-5v5"></path>'
+          : '<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"></path>';
+      }
+
+      document.addEventListener("fullscreenchange", syncFullscreenButton);
+      fullscreenButton.addEventListener("click", async () => {
+        const announcer = document.getElementById("announcer");
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "NotAllowedError") {
+            announcer.textContent = "The browser blocked full-screen mode.";
+            return;
+          }
+          throw error;
+        }
+      });
+      syncFullscreenButton();
+
+      render();
+
+      const opening = document.getElementById("opening");
+      const revealGame = () => {
+        app.classList.add("ready");
+        app.removeAttribute("inert");
+        opening.classList.add("leaving");
+      };
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) revealGame();
+      else window.setTimeout(revealGame, 1550);
+    })();
+  </script>
+</body>
+</html>
